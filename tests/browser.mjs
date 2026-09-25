@@ -28,11 +28,26 @@ try {
   assert.equal(await page.locator('.library').isVisible(),false);
   await page.locator('[data-key="A"]').click();
   await page.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-pressed') === 'true');
-  for (const [width,height] of [[320,640],[390,844],[844,390]]) {
+  await mkdir('.test-output',{recursive:true});
+  for (const [width,height] of [[320,568],[320,640],[390,844],[768,1024],[844,390]]) {
     await page.setViewportSize({width,height});
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.ok(await page.locator('[data-key="start"]').evaluate(b => b.getBoundingClientRect().bottom <= innerHeight), 'Start visible without scrolling');
+    for (const key of ['A','B','start','select','up']) {
+      const bounds = await page.locator(`[data-key="${key}"]`).boundingBox();
+      assert.ok(bounds.width >= 44 && bounds.height >= 44, `${key} has a 44px touch target at ${width}`);
+    }
+    assert.ok(await page.locator('.toolbar').evaluate(b => b.getBoundingClientRect().bottom <= innerHeight),'toolbar fits viewport');
+    await page.screenshot({path:`.test-output/player-${width}-${height}.png`});
   }
+  const padBox = await page.locator('.dpad').boundingBox();
+  await page.mouse.move(padBox.x + 10, padBox.y + padBox.height / 2); await page.mouse.down();
+  assert.equal(await page.locator('[data-key="left"]').evaluate(b => b.classList.contains('pressed')),true);
+  await page.mouse.move(padBox.x + padBox.width - 10,padBox.y + 10);
+  assert.equal(await page.locator('[data-key="left"]').evaluate(b => b.classList.contains('pressed')),false);
+  assert.equal(await page.locator('[data-key="up"]').evaluate(b => b.classList.contains('pressed')),true);
+  assert.equal(await page.locator('[data-key="right"]').evaluate(b => b.classList.contains('pressed')),true);
+  await page.mouse.up(); assert.equal(await page.locator('.dpad .pressed').count(),0);
   await page.getByRole('button',{name:'Partidas y ayuda',exact:true}).click();
   assert.equal(await page.locator('.save-panel').isVisible(),true);
   await page.locator('.help-link').click();

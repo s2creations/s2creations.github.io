@@ -39,7 +39,7 @@ function save() {
   try { const ram = engine.ram(); if (ram.length) localStorage.setItem(current.key, JSON.stringify(Array.from(ram))); engine.dirty = false; }
   catch { if (!storageWarned) { status('No se pudo guardar en este navegador. Exporta una copia de tu partida.'); storageWarned = true; } }
 }
-function release() { held.clear(); engine.release(); document.querySelectorAll('[data-key]').forEach(b => b.classList.remove('pressed')); }
+function release() { padPointers.clear(); held.clear(); engine.release(); document.querySelectorAll('[data-key]').forEach(b => b.classList.remove('pressed')); }
 function keyInput(key, down, source) {
   if (down) held.set(source, key); else held.delete(source);
   const active = [...held.values()].includes(key);
@@ -124,11 +124,34 @@ $('#save-file').onchange = async event => {
   catch(error) { status(error.message); }
   finally { loading = false; controlsEnabled(!!engine.e); updatePause(); }
 };
-document.querySelectorAll('[data-key]').forEach(button => {
+document.querySelectorAll('[data-key]:not(.dpad button)').forEach(button => {
   button.onpointerdown = event => { event.preventDefault(); if (!engine.e || loading) return; unlockGameAudio(); button.setPointerCapture(event.pointerId); keyInput(button.dataset.key,true,`p${event.pointerId}`); };
   const end = event => keyInput(button.dataset.key,false,`p${event.pointerId}`);
   button.onpointerup = end; button.onpointercancel = end; button.onlostpointercapture = end; button.oncontextmenu = event => event.preventDefault();
 });
+// The entire pad tracks each finger, allowing slides and diagonal directions.
+const pad = $('.dpad');
+const padPointers = new Set();
+function movePad(event) {
+  if (!padPointers.has(event.pointerId)) return;
+  const box = pad.getBoundingClientRect();
+  const x = (event.clientX - box.left) / box.width * 2 - 1;
+  const y = (event.clientY - box.top) / box.height * 2 - 1;
+  for (const [key, active] of Object.entries({left:x < -.25,right:x > .25,up:y < -.25,down:y > .25})) {
+    keyInput(key, active, `pad${event.pointerId}:${key}`);
+  }
+}
+pad.onpointerdown = event => {
+  event.preventDefault(); if (!engine.e || loading || !engine.running) return;
+  unlockGameAudio(); padPointers.add(event.pointerId); pad.setPointerCapture(event.pointerId); movePad(event);
+};
+pad.onpointermove = movePad;
+function endPad(event) {
+  padPointers.delete(event.pointerId);
+  for (const key of ['left','right','up','down']) keyInput(key,false,`pad${event.pointerId}:${key}`);
+}
+pad.onpointerup = endPad; pad.onpointercancel = endPad; pad.onlostpointercapture = endPad;
+pad.oncontextmenu = event => event.preventDefault();
 const keys = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',KeyX:'A',KeyZ:'B',Enter:'start',ShiftLeft:'select',ShiftRight:'select'};
 window.addEventListener('keydown', event => { if ((['INPUT','TEXTAREA','SUMMARY','A'].includes(event.target.tagName) || (event.target.tagName === 'BUTTON' && ['Enter','Space'].includes(event.code))) || event.ctrlKey || event.metaKey || event.altKey || !engine.e || loading) return; if (keys[event.code]) { event.preventDefault(); unlockGameAudio(); keyInput(keys[event.code],true,event.code); } if (event.code === 'Space') { event.preventDefault(); if (!event.repeat) togglePause(); } });
 window.addEventListener('keyup', event => { if (keys[event.code]) keyInput(keys[event.code],false,event.code); });
