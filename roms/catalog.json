@@ -1,0 +1,142 @@
+[
+  {
+    "id": "batman-the-video-game",
+    "title": "Batman: The Video Game",
+    "file": "roms/Batman-The-Video-Game.gb",
+    "system": "gb",
+    "size": 131072
+  },
+  {
+    "id": "castlevania-legends",
+    "title": "Castlevania Legends",
+    "file": "roms/Castlevania-Legends.gb",
+    "system": "gb",
+    "size": 262144
+  },
+  {
+    "id": "donkey-kong-country",
+    "title": "Donkey Kong Country Dx",
+    "file": "roms/Donkey-Kong-Country.gbc",
+    "system": "gbc",
+    "size": 4194304
+  },
+  {
+    "id": "donkey-kong-land",
+    "title": "Donkey Kong Land",
+    "file": "roms/Donkey-Kong-Land.gb",
+    "system": "gb",
+    "size": 524288
+  },
+  {
+    "id": "dr-mario",
+    "title": "Dr. Mario",
+    "file": "roms/Dr-Mario.gb",
+    "system": "gb",
+    "size": 32768
+  },
+  {
+    "id": "mega-man-ii",
+    "title": "Mega Man II",
+    "file": "roms/Mega-Man-II.gb",
+    "system": "gb",
+    "size": 262144
+  },
+  {
+    "id": "metroid-ii",
+    "title": "Metroid II",
+    "file": "roms/Metroid-II.gb",
+    "system": "gb",
+    "size": 262144
+  },
+  {
+    "id": "pokemon-blue",
+    "title": "Pokémon: Blue Version",
+    "file": "roms/Pokemon-Blue.gb",
+    "system": "gb",
+    "size": 1048576
+  },
+  {
+    "id": "pokemon-crystal-version",
+    "title": "Pokémon: Crystal Version",
+    "file": "roms/Pokemon-Crystal-Version.gbc",
+    "system": "gbc",
+    "size": 2097152
+  },
+  {
+    "id": "pokemon-gold-version",
+    "title": "Pokémon: Gold Version",
+    "file": "roms/Pokemon-Gold-Version.gbc",
+    "system": "gbc",
+    "size": 2097152
+  },
+  {
+    "id": "pokemon-red",
+    "title": "Pokémon: Red Version",
+    "file": "roms/Pokemon-Red.gb",
+    "system": "gb",
+    "size": 1048576
+  },
+  {
+    "id": "pokemon-silver-version",
+    "title": "Pokémon: Silver Version",
+    "file": "roms/Pokemon-Silver-Version.gbc",
+    "system": "gbc",
+    "size": 2097152
+  },
+  {
+    "id": "pokemon-trading-card-game",
+    "title": "Pokémon: Trading Card Game",
+    "file": "roms/Pokemon-Trading-Card-Game.gbc",
+    "system": "gbc",
+    "size": 2097152
+  },
+  {
+    "id": "pokemon-yellow",
+    "title": "Pokémon: Yellow Version",
+    "file": "roms/Pokemon-Yellow.gb",
+    "system": "gbc",
+    "size": 1048576
+  },
+  {
+    "id": "super-mario-bros-deluxe",
+    "title": "Super Mario Bros Deluxe",
+    "file": "roms/Super-Mario-Bros-Deluxe.gbc",
+    "system": "gbc",
+    "size": 1048576
+  },
+  {
+    "id": "super-mario-land",
+    "title": "Super Mario Land",
+    "file": "roms/Super-Mario-Land.gb",
+    "system": "gb",
+    "size": 65536
+  },
+  {
+    "id": "super-mario-land-2",
+    "title": "Super Mario Land 2: 6 Golden Coins",
+    "file": "roms/Super-Mario-Land-2.gb",
+    "system": "gb",
+    "size": 524288
+  },
+  {
+    "id": "tetris",
+    "title": "Tetris",
+    "file": "roms/Tetris.gb",
+    "system": "gb",
+    "size": 32768
+  },
+  {
+    "id": "the-legend-of-zelda-links-awakening-dx",
+    "title": "The Legend of Zelda: Link's Awakening DX",
+    "file": "roms/The-Legend-of-Zelda-Links-Awakening-DX.gbc",
+    "system": "gbc",
+    "size": 1048576
+  },
+  {
+    "id": "legend-of-zelda-the-links-awakening",
+    "title": "The Legend of Zelda: The Link's Awakening",
+    "file": "roms/Legend-of-Zelda-The-Links-Awakening.gb",
+    "system": "gb",
+    "size": 524288
+  }
+]

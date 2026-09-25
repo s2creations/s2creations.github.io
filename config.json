@@ -1,0 +1,82 @@
+{"brand":"S² Creations","description":"Tu próxima aventura cabe en el bolsillo.","games":{
+    "roms/Batman-The-Video-Game.gb": {
+        "id": "batman-the-video-game",
+        "title": "Batman: The Video Game"
+    },
+    "roms/Castlevania-Legends.gb": {
+        "id": "castlevania-legends",
+        "title": "Castlevania Legends"
+    },
+    "roms/Donkey-Kong-Country.gbc": {
+        "id": "donkey-kong-country",
+        "title": "Donkey Kong Country Dx"
+    },
+    "roms/Donkey-Kong-Land.gb": {
+        "id": "donkey-kong-land",
+        "title": "Donkey Kong Land"
+    },
+    "roms/Dr-Mario.gb": {
+        "id": "dr-mario",
+        "title": "Dr. Mario"
+    },
+    "roms/Legend-of-Zelda-The-Links-Awakening.gb": {
+        "id": "legend-of-zelda-the-links-awakening",
+        "title": "The Legend of Zelda: The Link's Awakening"
+    },
+    "roms/Mega-Man-II.gb": {
+        "id": "mega-man-ii",
+        "title": "Mega Man II"
+    },
+    "roms/Metroid-II.gb": {
+        "id": "metroid-ii",
+        "title": "Metroid II"
+    },
+    "roms/Pokemon-Blue.gb": {
+        "id": "pokemon-blue",
+        "title": "Pokémon: Blue Version"
+    },
+    "roms/Pokemon-Crystal-Version.gbc": {
+        "id": "pokemon-crystal-version",
+        "title": "Pokémon: Crystal Version"
+    },
+    "roms/Pokemon-Gold-Version.gbc": {
+        "id": "pokemon-gold-version",
+        "title": "Pokémon: Gold Version"
+    },
+    "roms/Pokemon-Red.gb": {
+        "id": "pokemon-red",
+        "title": "Pokémon: Red Version"
+    },
+    "roms/Pokemon-Silver-Version.gbc": {
+        "id": "pokemon-silver-version",
+        "title": "Pokémon: Silver Version"
+    },
+    "roms/Pokemon-Trading-Card-Game.gbc": {
+        "id": "pokemon-trading-card-game",
+        "title": "Pokémon: Trading Card Game"
+    },
+    "roms/Pokemon-Yellow.gb": {
+        "id": "pokemon-yellow",
+        "title": "Pokémon: Yellow Version"
+    },
+    "roms/Super-Mario-Bros-Deluxe.gbc": {
+        "id": "super-mario-bros-deluxe",
+        "title": "Super Mario Bros Deluxe"
+    },
+    "roms/Super-Mario-Land.gb": {
+        "id": "super-mario-land",
+        "title": "Super Mario Land"
+    },
+    "roms/Super-Mario-Land-2.gb": {
+        "id": "super-mario-land-2",
+        "title": "Super Mario Land 2: 6 Golden Coins"
+    },
+    "roms/Tetris.gb": {
+        "id": "tetris",
+        "title": "Tetris"
+    },
+    "roms/The-Legend-of-Zelda-Links-Awakening-DX.gbc": {
+        "id": "the-legend-of-zelda-links-awakening-dx",
+        "title": "The Legend of Zelda: Link's Awakening DX"
+    }
+}}

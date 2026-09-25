@@ -1,0 +1,9 @@
+{
+  "name": "s2-pocket",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/catalog.mjs",
+    "test": "node --test tests/catalog.test.mjs"
+  }
+}
