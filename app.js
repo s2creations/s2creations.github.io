@@ -2,14 +2,13 @@ import {PocketEngine} from './engine.js';
 import {validateRom, romUrl} from './rom-utils.js';
 const $ = s => document.querySelector(s);
 const engine = new PocketEngine($('#screen'), error => { status(error.message); updatePause(); });
-let catalog = [], filter = 'all', current = null, loading = false, brand = 'S² Creations', storageWarned = false;
+let current = null, loading = false, brand = 'S² Creations', storageWarned = false;
 const held = new Map();
 const directPlay = new URL(location.href).searchParams.has('rom');
 let autoSoundPending = directPlay;
 if (directPlay) {
   document.body.classList.add('direct-play');
-  $('.help-link').textContent = '← Biblioteca';
-  $('.help-link').href = './';
+  $('.help-link').remove();
   const options = document.createElement('button');
   options.id = 'game-options'; options.textContent = 'Partidas y ayuda';
   options.setAttribute('aria-expanded', 'false');
@@ -45,33 +44,12 @@ function keyInput(key, down, source) {
   const active = [...held.values()].includes(key);
   engine.input(key, active); document.querySelector(`[data-key="${key}"]`)?.classList.toggle('pressed', active);
 }
-function render() {
-  $('#count').textContent = String(catalog.length).padStart(2, '0');
-  const games = catalog.filter(g => (filter === 'all' || g.system === filter) && g.title.toLocaleLowerCase().includes($('#search').value.toLocaleLowerCase()));
-  $('#games').replaceChildren();
-  if (!games.length) {
-    const box = document.createElement('div'); box.className = 'empty-library';
-    const title = document.createElement('strong'); title.textContent = catalog.length ? 'No encontramos ese cartucho' : 'Una biblioteca por descubrir';
-    const p = document.createElement('p'); p.textContent = catalog.length ? 'Prueba otro nombre o cambia el filtro.' : 'Abre una ROM de tu dispositivo para jugar. Los juegos publicados aparecerán aquí.';
-    box.append(title,p); $('#games').append(box);
-  }
-  for (const game of games) {
-    const button = document.createElement('button'); button.className = 'game-card'; button.dataset.system = game.system;
-    button.classList.toggle('selected', current?.id === game.id); button.setAttribute('aria-label', `Jugar ${game.title}`);
-    const art = document.createElement('span'); art.className = 'game-art'; art.textContent = '▦';
-    const info = document.createElement('span'); info.className = 'game-info';
-    const title = document.createElement('strong'); title.textContent = game.title;
-    const meta = document.createElement('small'); meta.textContent = `${game.system === 'gbc' ? 'GAME BOY COLOR' : 'GAME BOY'} · ${Math.round(game.size / 1024)} KB`;
-    const arrow = document.createElement('span'); arrow.textContent = '↗'; info.append(title,meta); button.append(art,info,arrow);
-    button.onclick = () => loadGame(game); $('#games').append(button);
-  }
-}
-async function loadGame(game, localBytes) {
+async function loadGame(game) {
   if (loading) return;
   loading = true; save(); release(); engine.pause(); updatePause(); controlsEnabled(false); status(`Cargando ${game.title}…`);
   try {
-    let bytes = localBytes;
-    if (!bytes) { const response = await fetch(romUrl(game.file, document.baseURI)); if (!response.ok) throw new Error(`No se encontró la ROM (${response.status}).`); bytes = new Uint8Array(await response.arrayBuffer()); }
+    let bytes;
+    { const response = await fetch(romUrl(game.file, document.baseURI)); if (!response.ok) throw new Error(`No se encontró la ROM (${response.status}).`); bytes = new Uint8Array(await response.arrayBuffer()); }
     const system = validateRom(bytes);
     const digest = await crypto.subtle.digest('SHA-256', bytes); const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('');
     await engine.load(bytes);
@@ -82,7 +60,7 @@ async function loadGame(game, localBytes) {
     $('#device-label').textContent = `${brand} - ${game.title}`; document.title = `${brand} - ${game.title}`;
     $('#screen-empty').hidden = true; $('#power').classList.add('on');
     const url = new URL(location.href); if (game.id) url.searchParams.set('rom',game.id); else url.searchParams.delete('rom'); history.replaceState(null,'',url);
-    if (!document.hidden) engine.play(); controlsEnabled(true); render();
+    if (!document.hidden) engine.play(); controlsEnabled(true);
     status(storageError ? 'No se pudo restaurar el guardado local. Exporta una copia al terminar.' : `${game.title} · ${restored ? 'Partida restaurada' : 'Listo para jugar'}${engine.muted ? (directPlay ? ' · Sonido al tocar un control' : ' · Toca ♪ para activar el sonido') : ''}`);
   } catch (error) {
     document.body.classList.remove('direct-play'); status(error.message || 'No se pudo cargar el juego.');
@@ -90,13 +68,6 @@ async function loadGame(game, localBytes) {
     controlsEnabled(!!engine.e);
   } finally { loading = false; updatePause(); }
 }
-$('#search').oninput = render;
-document.querySelectorAll('[data-filter]').forEach(button => button.onclick = () => { filter = button.dataset.filter; document.querySelectorAll('[data-filter]').forEach(b => b.setAttribute('aria-pressed',String(b === button))); render(); });
-$('#rom-file').onchange = async event => {
-  const file = event.target.files[0]; event.target.value = ''; if (!file || loading) return;
-  if (!/\.(gb|gbc)$/i.test(file.name) || file.size > 8388608) { status('Elige una ROM .gb o .gbc sin comprimir, de hasta 8 MiB.'); return; }
-  await loadGame({title:file.name.replace(/\.(gb|gbc)$/i,''),id:null},new Uint8Array(await file.arrayBuffer()));
-};
 function togglePause() { if (!engine.e || loading) return; release(); if (engine.running) { engine.pause(); save(); status('Juego en pausa. Tu aventura puede esperar.'); } else { engine.play(); status(`${current.title} · Jugando`); } updatePause(); }
 $('#pause').onclick = togglePause;
 $('#sound').onclick = async () => {
@@ -160,14 +131,20 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { rel
 window.addEventListener('pagehide',save); setInterval(save,2000);
 async function boot() {
   try {
-    const responses = await Promise.all([fetch('config.json'),fetch('roms/catalog.json')]);
-    if (responses.some(r => !r.ok)) throw new Error('No se pudo leer la configuración o el catálogo.');
-    const [config,games] = await Promise.all(responses.map(r => r.json()));
-    if (!Array.isArray(games)) throw new Error('El catálogo debe ser una lista JSON.');
-    catalog = games; brand = config.brand || brand; $('#description').textContent = config.description || $('#description').textContent;
-    render(); const requested = new URL(location.href).searchParams.get('rom');
-    if (requested) { const game = catalog.find(g => g.id === requested); if (game) await loadGame(game); else { document.body.classList.remove('direct-play'); status('Ese juego no está en la biblioteca. Elige otro cartucho.'); } }
-  } catch(error) { document.body.classList.remove('direct-play'); render(); status(error.message); }
+    const response = await fetch('config.json');
+    if (!response.ok) throw new Error('No se pudo cargar la configuración. Intenta recargar la página.');
+    const config = await response.json();
+    brand = config.brand || brand;
+    $('#description').textContent = config.description || $('#description').textContent;
+    const requested = new URL(location.href).searchParams.get('rom');
+    if (!requested) { document.body.classList.remove('direct-play'); return; }
+    const catalogResponse = await fetch('roms/catalog.json');
+    if (!catalogResponse.ok) throw new Error('No se pudo cargar el juego. Vuelve a abrir el enlace de tu etiqueta.');
+    const games = await catalogResponse.json();
+    if (!Array.isArray(games)) throw new Error('No se pudo leer la información del juego.');
+    const game = games.find(g => g.id === requested);
+    if (game) await loadGame(game);
+    else { document.body.classList.remove('direct-play'); status('Esta etiqueta no corresponde a un juego disponible. Revisa su enlace o contacta a S² Creations.'); }
+  } catch(error) { document.body.classList.remove('direct-play'); status(error.message); }
 }
 boot();
-

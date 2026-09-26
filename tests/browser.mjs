@@ -23,7 +23,7 @@ let browser;
 try {
   browser = await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL || 'msedge'});
   const page = await browser.newPage(); const errors = []; page.on('pageerror',e => errors.push(e.message));
-  await page.goto(url+'?rom=test-classic'); await page.waitForSelector('#power.on');
+  await page.goto(url+'?rom=test-classic'); await page.waitForSelector('#power.on',{state:'attached'});
   assert.equal(await page.locator('.intro').isVisible(),false);
   assert.equal(await page.locator('.library').isVisible(),false);
   await page.locator('[data-key="A"]').click();
@@ -50,12 +50,8 @@ try {
   await page.mouse.up(); assert.equal(await page.locator('.dpad .pressed').count(),0);
   await page.getByRole('button',{name:'Partidas y ayuda',exact:true}).click();
   assert.equal(await page.locator('.save-panel').isVisible(),true);
-  await page.locator('.help-link').click();
-  await page.setViewportSize({width:1280,height:900});
-  await page.waitForSelector('.game-card');
-  assert.equal(await page.locator('.intro').isVisible(),true);
-  await page.getByRole('button',{name:'Jugar Classic Test',exact:true}).click();
-  await page.waitForSelector('#power.on');
+  assert.equal(await page.locator('.help-link').count(),0);
+  await page.goto(url+'?rom=test-classic'); await page.waitForSelector('#power.on',{state:'attached'});
   await page.waitForTimeout(2500);
   assert.match(await page.title(),/Classic Test/);
   const saved = await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('s2-pocket:ram:')).map(k => JSON.parse(localStorage[k])));
@@ -64,24 +60,33 @@ try {
   assert.ok(colors > 2,'emulated frame has drawn pixels');
   await page.getByRole('button',{name:'Ⅱ Pausar',exact:true}).click(); await page.getByRole('button',{name:'▶ Continuar',exact:true}).click();
   await page.getByRole('button',{name:'♪ Activar sonido',exact:true}).click(); await page.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-pressed') === 'true');
-  await page.getByRole('button',{name:'Jugar Color Test',exact:true}).click(); await page.waitForSelector('.console.color');
+  await page.goto(url+'?rom=test-color'); await page.waitForSelector('.console.color');
   await page.waitForTimeout(150); assert.ok(await page.locator('canvas').evaluate(c => new Set(c.getContext('2d').getImageData(0,0,160,144).data).size > 2), 'color frame has drawn pixels'); assert.match(page.url(),/rom=test-color/); assert.match(await page.title(),/Color Test/);
   await page.waitForTimeout(2300); assert.equal(await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('s2-pocket:ram:')).length),2);
-  await page.reload(); await page.waitForSelector('#power.on'); assert.match(await page.locator('#status').innerText(),/restaurada/);
-  await page.goto(url); await page.getByRole('button',{name:'Jugar Color Test',exact:true}).click(); await page.waitForSelector('#power.on');
-  await page.locator('#search').fill('nonexistent'); assert.equal(await page.locator('.game-card').count(),0); await page.locator('#search').fill('');
+  await page.reload(); await page.waitForSelector('#power.on',{state:'attached'}); assert.match(await page.locator('#status').innerText(),/restaurada/);
   await mkdir('.test-output',{recursive:true});
   for (const [width,height] of [[320,640],[390,844],[768,1024],[1440,1000],[844,390]]) {
     await page.setViewportSize({width,height});
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),`no overflow at ${width}`);
     await page.screenshot({path:`.test-output/${width}.png`,fullPage:true});
   }
+  await page.locator('#game-options').click();
   const downloadPromise = page.waitForEvent('download'); await page.locator('#export').click(); const download = await downloadPromise; await download.saveAs('.test-output/backup.sav');
   page.on('dialog',dialog => dialog.accept()); await page.locator('#save-file').setInputFiles('.test-output/backup.sav'); await page.waitForFunction(() => document.querySelector('#status').textContent.includes('Partida importada'));
-  await page.locator('#rom-file').setInputFiles({name:'bad.gb',mimeType:'application/octet-stream',buffer:Buffer.alloc(100)}); await page.waitForFunction(() => document.querySelector('#status').textContent.includes('32 KiB'));
-  await page.locator('#rom-file').setInputFiles({name:'local.gb',mimeType:'application/octet-stream',buffer:Buffer.from(fixture())}); await page.waitForFunction(() => document.title.includes('local')); assert.ok(!page.url().includes('?rom='));
-  await page.goto(url+'?rom=missing'); await page.waitForFunction(() => document.querySelector('#status').textContent.includes('no está'));
-  assert.deepEqual(errors,[]); console.log('PASS: GB/GBC execution, pixels, sound control, saves, reload, import/export, local ROM, invalid ROM, deep links, filters, five responsive viewports.');
+  await page.goto(url+'?rom=missing'); await page.waitForFunction(() => document.querySelector('#status').textContent.includes('no corresponde'));
+  assert.equal(await page.locator('.game-card').count(),0);
+  assert.equal(await page.locator('#rom-file').count(),0);
+  const requested = []; page.on('request',r => requested.push(r.url()));
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(url); await page.waitForSelector('.nfc-welcome');
+  assert.equal(await page.locator('.intro').isVisible(),true);
+  assert.equal(await page.locator('a[href="./"]').count(),0);
+  assert.equal(await page.locator('#games,#search,#rom-file').count(),0);
+  assert.ok(!requested.some(u => u.endsWith('/roms/catalog.json')), 'homepage does not request the game catalog');
+  await page.route('**/roms/test.gb',route => route.fulfill({status:404,body:'missing'}));
+  await page.goto(url+'?rom=test-classic'); await page.waitForFunction(() => document.querySelector('#status').textContent.includes('404'));
+  assert.equal(await page.locator('.game-card,#rom-file').count(),0);
+  assert.deepEqual(errors,[]); console.log('PASS: GB/GBC execution, pixels, sound control, saves, reload, import/export, NFC-only navigation, homepage without catalog, unknown and missing games, five responsive viewports.');
 } finally { await browser?.close(); server.close(); }
 
 

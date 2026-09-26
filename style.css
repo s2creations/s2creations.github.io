@@ -82,3 +82,10 @@
  .direct-play .device-label{grid-area:3/1/4/4}
 }
 .dpad{touch-action:none;user-select:none}
+/* Public NFC entry: preserve the cover design without exposing game navigation. */
+.nfc-welcome{padding:28px 22px;border:1px solid #d4dccb;border-radius:12px;background:#e8ecdf}
+.nfc-welcome h2{font:28px Georgia,serif;margin:14px 0;color:#355c47}
+.nfc-welcome p{font-size:13px;line-height:1.8;color:#6a785f}
+.nfc-only:not(.direct-play) .save-panel{display:none}
+.nfc-only:not(.direct-play) .toolbar{display:none}
+.direct-play .nfc-welcome{display:none}
