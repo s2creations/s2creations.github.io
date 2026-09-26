@@ -51,6 +51,26 @@ try {
     assert.ok(await page.locator('.toolbar').evaluate(b => b.getBoundingClientRect().bottom <= innerHeight),'toolbar fits viewport');
     await page.screenshot({path:`.test-output/player-${width}-${height}.png`});
   }
+  // Simulate iPhone without Fullscreen API, then a browser rejecting the request.
+  await page.evaluate(() => Object.defineProperty(document,'fullscreenEnabled',{configurable:true,value:false}));
+  await page.locator('#fullscreen').click();
+  assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('.topbar').isVisible(),false);
+  for (const [width,height] of [[390,844],[844,390]]) {
+    await page.setViewportSize({width,height});
+    assert.ok(await page.locator('.toolbar').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight));
+    assert.ok(await page.locator('[data-key="start"]').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight));
+  }
+  await page.locator('#fullscreen').click();
+  assert.equal(await page.locator('.topbar').isVisible(),true);
+  await page.evaluate(() => {
+    Object.defineProperty(document,'fullscreenEnabled',{configurable:true,value:true});
+    document.documentElement.requestFullscreen = () => Promise.reject(new Error('unsupported'));
+  });
+  await page.locator('#fullscreen').click();
+  assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'),'true');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'),'false');
   const padBox = await page.locator('.dpad').boundingBox();
   await page.mouse.move(padBox.x + 10, padBox.y + padBox.height / 2); await page.mouse.down();
   assert.equal(await page.locator('[data-key="left"]').evaluate(b => b.classList.contains('pressed')),true);

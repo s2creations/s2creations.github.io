@@ -89,3 +89,13 @@
 .nfc-only:not(.direct-play) .save-panel{display:none}
 .nfc-only:not(.direct-play) .toolbar{display:none}
 .direct-play .nfc-welcome{display:none}
+/* Expanded player also works when the browser cannot enter native fullscreen. */
+body.direct-play.expanded-player{height:100dvh;min-height:0;overflow:hidden}
+.direct-play.expanded-player .topbar{display:none}
+.direct-play.expanded-player main{height:100dvh;padding-top:max(4px,env(safe-area-inset-top));padding-bottom:max(4px,env(safe-area-inset-bottom));max-width:none}
+.direct-play.expanded-player .workspace{height:100%}
+@media(min-width:1025px){
+ .direct-play.expanded-player .play-area{height:100%;justify-content:center}
+ .direct-play.expanded-player .console{width:440px}
+ .direct-play.expanded-player .screen{width:min(300px,calc((100dvh - 410px)*1.111))}
+}

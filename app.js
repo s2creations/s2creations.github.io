@@ -12,7 +12,8 @@ if (directPlay) {
   const options = document.createElement('button');
   options.id = 'game-options'; options.textContent = 'Partidas y ayuda';
   options.setAttribute('aria-expanded', 'false');
-  options.onclick = () => {
+  options.onclick = async () => {
+    await exitExpanded();
     const opened = document.body.classList.toggle('show-game-options');
     options.setAttribute('aria-expanded', String(opened));
     if (opened) { if (engine.running) togglePause(); $('.library').scrollIntoView({behavior:'smooth'}); }
@@ -91,9 +92,44 @@ $('#sound').onclick = () => {
 };
 // iOS may accept touchend even when pointerdown did not unlock playback.
 $('.console').addEventListener('touchend', () => unlockGameAudio(), {passive:true});
+let fullscreenBusy = false;
+function syncExpanded() {
+  const expanded = document.body.classList.contains('expanded-player');
+  $('#fullscreen').textContent = expanded ? '⛶ Reducir' : '⛶ Ampliar';
+  $('#fullscreen').setAttribute('aria-pressed', String(expanded));
+}
+async function exitExpanded() {
+  if (document.fullscreenElement) {
+    try { await document.exitFullscreen(); } catch { return; }
+  }
+  document.body.classList.remove('expanded-player'); syncExpanded();
+}
 $('#fullscreen').onclick = async () => {
-  try { if (document.fullscreenElement) await document.exitFullscreen(); else if ($('.play-area').requestFullscreen) await $('.play-area').requestFullscreen(); else { $('.play-area').scrollIntoView({behavior:'smooth'}); status('Este navegador no permite pantalla completa.'); } } catch { status('Pantalla completa no disponible en este navegador.'); }
+  if (fullscreenBusy) return;
+  fullscreenBusy = true;
+  try {
+    if (document.body.classList.contains('expanded-player') || document.fullscreenElement) {
+      await exitExpanded(); return;
+    }
+    document.body.classList.remove('show-game-options');
+    $('#game-options')?.setAttribute('aria-expanded', 'false');
+    // Fullscreen support is detected at runtime; no iOS-version assumptions.
+    let native = false;
+    if (document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+      try { await document.documentElement.requestFullscreen(); native = !!document.fullscreenElement; } catch {}
+    }
+    document.body.classList.add('expanded-player'); syncExpanded();
+    window.scrollTo(0,0);
+    status(native ? 'Pantalla completa · Toca Reducir para salir.' : 'Vista ampliada · Toca Reducir para salir.');
+  } finally { fullscreenBusy = false; }
 };
+document.addEventListener('fullscreenchange', () => {
+  document.body.classList.toggle('expanded-player', !!document.fullscreenElement); syncExpanded();
+});
+window.addEventListener('keydown', event => {
+  if (event.code === 'Escape' && document.body.classList.contains('expanded-player')) exitExpanded();
+});
+syncExpanded();
 $('#export').onclick = () => {
   try { const ram = engine.ram(); if (!ram.length) { status('Este cartucho no tiene memoria de guardado.'); return; } const url = URL.createObjectURL(new Blob([ram])); const a = document.createElement('a'); a.href = url; a.download = `${current.title.replace(/[^a-z0-9_-]/gi,'_')}.sav`; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000); status('Partida exportada. Conserva esta copia.'); }
   catch(error) { status(error.message); }
