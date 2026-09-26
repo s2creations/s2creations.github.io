@@ -8,6 +8,7 @@ export class PocketEngine {
     try { this.m = await PocketEngine.modulePromise; } catch (error) { PocketEngine.modulePromise = null; throw error; }
     const AudioCtor = window.AudioContext || window.webkitAudioContext;
     this.audio ||= AudioCtor ? new AudioCtor() : null;
+    if (this.audio) this.audio.onstatechange = () => { if (this.audio.state !== 'running') this.clearAudio(); this.onAudioStateChange?.(); };
     if (this.audio && !this.gain) { this.gain = this.audio.createGain(); this.gain.connect(this.audio.destination); }
     const size = (bytes.length + 32767) & ~32767;
     this.ptr = this.m._malloc(size);
@@ -35,7 +36,26 @@ export class PocketEngine {
       this.raf = requestAnimationFrame(t => this.tick(t));
     } catch (error) { this.pause(); this.onError(error); }
   }
-  async enableAudio() { if (this.audio) await this.audio.resume(); }
+  async enableAudio() {
+    if (!this.audio) throw new Error('Este navegador no dispone de audio compatible.');
+    // Set the iOS media category during the user's gesture, not at page load.
+    try { if (globalThis.navigator?.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+    // Both resume and the initial source must start before the first await.
+    const resumed = this.audio.resume();
+    const primer = this.audio.createBufferSource();
+    primer.buffer = this.audio.createBuffer(1, 1, this.audio.sampleRate);
+    primer.connect(this.audio.destination);
+    primer.onended = () => primer.disconnect();
+    primer.start(0);
+    let timeout;
+    try {
+      await Promise.race([resumed, new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('El audio sigue suspendido. Toca Activar sonido de nuevo.')), 2000);
+      })]);
+      if (this.audio.state !== 'running') throw new Error('El audio sigue suspendido. Toca Activar sonido de nuevo.');
+      this.audioTime = 0;
+    } finally { clearTimeout(timeout); try { primer.stop(); } catch {} primer.disconnect(); }
+  }
   setMuted(muted) { this.muted = muted; if (this.gain) this.gain.gain.value = muted ? 0 : 0.65; }
   clearAudio() { for (const source of this.sources) { try { source.stop(); } catch {} } this.sources.clear(); this.audioTime = 0; }
   pushAudio() {

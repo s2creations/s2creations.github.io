@@ -23,11 +23,22 @@ let browser;
 try {
   browser = await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL || 'msedge'});
   const page = await browser.newPage(); const errors = []; page.on('pageerror',e => errors.push(e.message));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'audioSession', {configurable:true,value:{type:'auto'}});
+    window.scheduledAudioBuffers = 0;
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function(...args) {
+      if (this.buffer?.length > 1) window.scheduledAudioBuffers++;
+      return start.apply(this,args);
+    };
+  });
   await page.goto(url+'?rom=test-classic'); await page.waitForSelector('#power.on',{state:'attached'});
   assert.equal(await page.locator('.intro').isVisible(),false);
   assert.equal(await page.locator('.library').isVisible(),false);
   await page.locator('[data-key="A"]').click();
   await page.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-pressed') === 'true');
+  await page.waitForFunction(() => window.scheduledAudioBuffers > 0);
+  assert.equal(await page.evaluate(() => navigator.audioSession.type),'playback');
   await mkdir('.test-output',{recursive:true});
   for (const [width,height] of [[320,568],[320,640],[390,844],[768,1024],[844,390]]) {
     await page.setViewportSize({width,height});
@@ -59,6 +70,7 @@ try {
   const colors = await page.locator('canvas').evaluate(c => new Set(c.getContext('2d').getImageData(0,0,160,144).data).size);
   assert.ok(colors > 2,'emulated frame has drawn pixels');
   await page.getByRole('button',{name:'Ⅱ Pausar',exact:true}).click(); await page.getByRole('button',{name:'▶ Continuar',exact:true}).click();
+  if (await page.locator('#sound').getAttribute('aria-pressed') === 'true') await page.locator('#sound').click();
   await page.getByRole('button',{name:'♪ Activar sonido',exact:true}).click(); await page.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-pressed') === 'true');
   await page.goto(url+'?rom=test-color'); await page.waitForSelector('.console.color');
   await page.waitForTimeout(150); assert.ok(await page.locator('canvas').evaluate(c => new Set(c.getContext('2d').getImageData(0,0,160,144).data).size > 2), 'color frame has drawn pixels'); assert.match(page.url(),/rom=test-color/); assert.match(await page.title(),/Color Test/);

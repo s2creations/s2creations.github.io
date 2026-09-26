@@ -19,15 +19,22 @@ if (directPlay) {
   };
   $('.toolbar').append(options);
 }
+let soundAttempt = null;
 function syncSound() {
-  $('#sound').textContent = engine.muted ? '♪ Activar sonido' : '♪ Silenciar';
-  $('#sound').setAttribute('aria-pressed', String(!engine.muted));
+  const active = !engine.muted && engine.audio?.state === 'running';
+  $('#sound').textContent = active ? '♪ Silenciar' : '♪ Activar sonido';
+  $('#sound').setAttribute('aria-pressed', String(active));
 }
+engine.onAudioStateChange = syncSound;
 function unlockGameAudio() {
-  if (!autoSoundPending || !engine.audio || loading) return;
-  autoSoundPending = false;
-  engine.enableAudio().then(() => { engine.setMuted(false); syncSound(); })
-    .catch(() => { autoSoundPending = true; });
+  if (loading || !engine.audio || soundAttempt) return soundAttempt;
+  if (!autoSoundPending && (engine.muted || engine.audio.state === 'running')) return;
+  soundAttempt = engine.enableAudio().then(() => {
+    autoSoundPending = false; engine.setMuted(false); syncSound();
+  }).catch(error => {
+    autoSoundPending = true; syncSound(); status(error.message);
+  }).finally(() => { soundAttempt = null; });
+  return soundAttempt;
 }
 
 function status(message) { $('#status').textContent = message; }
@@ -68,14 +75,22 @@ async function loadGame(game) {
     controlsEnabled(!!engine.e);
   } finally { loading = false; updatePause(); }
 }
-function togglePause() { if (!engine.e || loading) return; release(); if (engine.running) { engine.pause(); save(); status('Juego en pausa. Tu aventura puede esperar.'); } else { engine.play(); status(`${current.title} · Jugando`); } updatePause(); }
+function togglePause() { if (!engine.e || loading) return; release(); if (engine.running) { engine.pause(); save(); status('Juego en pausa. Tu aventura puede esperar.'); } else { unlockGameAudio(); engine.play(); status(`${current.title} · Jugando`); } updatePause(); }
 $('#pause').onclick = togglePause;
-$('#sound').onclick = async () => {
-  autoSoundPending = false;
+$('#sound').onclick = () => {
   if (!engine.audio) { status('Primero carga un juego para activar el sonido.'); return; }
-  try { await engine.enableAudio(); engine.setMuted(!engine.muted); syncSound(); }
-  catch { status('El navegador no pudo activar el audio. Inténtalo de nuevo.'); }
+  if (soundAttempt) return;
+  if (!engine.muted && engine.audio.state === 'running') {
+    autoSoundPending = false; engine.setMuted(true); engine.clearAudio(); syncSound();
+  } else {
+    autoSoundPending = true;
+    unlockGameAudio()?.then(() => {
+      if (!engine.muted && engine.audio.state === 'running') status('Audio activado. Si no lo escuchas, revisa el volumen multimedia y el modo silencio del iPhone.');
+    });
+  }
 };
+// iOS may accept touchend even when pointerdown did not unlock playback.
+$('.console').addEventListener('touchend', () => unlockGameAudio(), {passive:true});
 $('#fullscreen').onclick = async () => {
   try { if (document.fullscreenElement) await document.exitFullscreen(); else if ($('.play-area').requestFullscreen) await $('.play-area').requestFullscreen(); else { $('.play-area').scrollIntoView({behavior:'smooth'}); status('Este navegador no permite pantalla completa.'); } } catch { status('Pantalla completa no disponible en este navegador.'); }
 };
